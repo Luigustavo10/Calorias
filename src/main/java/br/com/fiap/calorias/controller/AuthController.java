@@ -2,6 +2,7 @@ package br.com.fiap.calorias.controller;
 
 import br.com.fiap.calorias.config.security.TokenService;
 import br.com.fiap.calorias.dto.LoginDTO;
+import br.com.fiap.calorias.dto.TokenDTO;
 import br.com.fiap.calorias.dto.UsuarioCadastroDTO;
 import br.com.fiap.calorias.dto.UsuarioExibicaoDTO;
 import br.com.fiap.calorias.model.Usuario;
@@ -13,6 +14,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -29,27 +31,29 @@ public class AuthController {
     private TokenService tokenService;
 
     @PostMapping("/login")
-    public ResponseEntity login(
-            @RequestBody
-            @Valid
-            LoginDTO usuarioDto
-    ){
+    public ResponseEntity<TokenDTO> login(
+            @RequestBody @Valid LoginDTO usuarioDto
+    ) {
         UsernamePasswordAuthenticationToken usernamePassword =
                 new UsernamePasswordAuthenticationToken(
                         usuarioDto.email(),
-                        usuarioDto.senha());
+                        usuarioDto.senha()
+                );
 
         Authentication auth = authenticationManager.authenticate(usernamePassword);
 
-        String token = tokenService.gerarToken((Usuario) auth.getPrincipal());
+        // Obter o UserDetails do Authentication
+        UserDetails userDetails = (UserDetails) auth.getPrincipal();
 
-        return ResponseEntity.ok(token);
+        // Gerar o token com base no email do usuário
+        String token = tokenService.gerarToken(new Usuario(null, null, userDetails.getUsername(), userDetails.getPassword(), null));
+
+        return ResponseEntity.ok(new TokenDTO(token));
     }
 
     @PostMapping("/register")
     @ResponseStatus(HttpStatus.CREATED)
-    public UsuarioExibicaoDTO registrar(
-            @RequestBody @Valid UsuarioCadastroDTO usuarioCadastroDTO){
+    public UsuarioExibicaoDTO registrar(@RequestBody @Valid UsuarioCadastroDTO usuarioCadastroDTO){
 
         UsuarioExibicaoDTO usuarioSalvo = null;
         usuarioSalvo = usuarioService.salvarUsuario(usuarioCadastroDTO);

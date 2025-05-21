@@ -1,6 +1,7 @@
 package br.com.fiap.calorias.config.security;
 
 import br.com.fiap.calorias.repository.UsuarioRepository;
+import br.com.fiap.calorias.service.AuthorizationService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -21,7 +22,7 @@ public class VerificarToken extends OncePerRequestFilter {
     private TokenService tokenService;
 
     @Autowired
-    private UsuarioRepository usuarioRepository;
+    private AuthorizationService authorizationService; // Use AuthorizationService para buscar o usuário
 
     @Override
     protected void doFilterInternal(
@@ -30,25 +31,25 @@ public class VerificarToken extends OncePerRequestFilter {
             FilterChain filterChain) throws ServletException, IOException {
 
         String authorizationHeader = request.getHeader("Authorization");
-        String token = "";
+        if (authorizationHeader != null && authorizationHeader.startsWith("Bearer ")) {
+            String token = authorizationHeader.replace("Bearer ", "").trim();
+            String email = tokenService.validarToken(token); // Pega o e-mail do token
 
-        if (authorizationHeader == null){
-            token = null;
-        } else {
-            token = authorizationHeader.replace("Bearer", "").trim();
-            String login = tokenService.validarToken(token);
-            UserDetails usuario = usuarioRepository.findByEmail(login);
+            if (!email.isEmpty()) {
+                UserDetails usuario = authorizationService.loadUserByUsername(email); // Carrega o UserDetails pelo e-mail
 
-            UsernamePasswordAuthenticationToken authentication =
-                    new UsernamePasswordAuthenticationToken(
-                            usuario,
-                            null,
-                            usuario.getAuthorities()
-                    );
-            SecurityContextHolder.getContext().setAuthentication(authentication);
+                UsernamePasswordAuthenticationToken authentication =
+                        new UsernamePasswordAuthenticationToken(
+                                usuario,
+                                null,
+                                usuario.getAuthorities()
+                        );
+
+                // Define o usuário autenticado no contexto
+                SecurityContextHolder.getContext().setAuthentication(authentication);
+            }
         }
 
         filterChain.doFilter(request, response);
-
     }
 }

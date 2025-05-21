@@ -14,47 +14,47 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
-@Configuration // Spring Security Configuration
-@EnableWebSecurity // Enable Spring Security
+@Configuration
+@EnableWebSecurity
 public class SecurityConfig {
 
     @Autowired
-    private VerificarToken verificarToken; // Token verification filter
-    @Bean // Bean to configure authentication manager
+    private VerificarToken verificarToken;
+
+    @Bean
     public SecurityFilterChain filtrarCadeiaDeSeguranca(
             HttpSecurity httpSecurity
     ) throws Exception {
         return httpSecurity
-                .csrf(csrf -> csrf.disable()) // Disable CSRF protection
-                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))// Use stateless session management
-                .authorizeHttpRequests(authorize -> authorize// Authorize HTTP requests
-                        .requestMatchers(HttpMethod.POST, "/auth/login").permitAll() // Allow POST requests to /auth/login
-                        .requestMatchers(HttpMethod.POST, "/auth/register").permitAll() // Allow POST requests to /auth/register
-                        .requestMatchers(HttpMethod.POST, "/alimentos") // Allow POST requests to /alimentos
-                        .hasRole("ADMIN")// Require ADMIN role
+                .csrf(csrf -> csrf.disable())
+                .sessionManagement(session ->
+                        session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .authorizeHttpRequests(authorize -> authorize
+                        .requestMatchers(HttpMethod.POST, "/auth/login").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/auth/register").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/alimentos").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/api/alimentos/*").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.PUT, "/api/alimentos").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/alimentos").hasAnyRole("ADMIN", "USER")
-                        .anyRequest().authenticated() // Require authentication for any other request
+                        .anyRequest().authenticated()
                 )
                 .addFilterBefore(
                         verificarToken,
                         UsernamePasswordAuthenticationFilter.class
                 )
                 .build();
-
     }
 
     @Bean
     public AuthenticationManager authenticationManager(
-            AuthenticationConfiguration authenticationConfiguration // Authentication configuration
+            AuthenticationConfiguration authenticationConfiguration
     ) throws Exception {
         return authenticationConfiguration.getAuthenticationManager();
     }
-
 
     @Bean
     public PasswordEncoder passwordEncoder(){
         return new BCryptPasswordEncoder();
     }
+
 }

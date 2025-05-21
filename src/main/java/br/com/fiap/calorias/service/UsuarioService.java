@@ -4,6 +4,7 @@ import br.com.fiap.calorias.dto.UsuarioCadastroDTO;
 import br.com.fiap.calorias.dto.UsuarioExibicaoDTO;
 import br.com.fiap.calorias.exception.UsuarioNaoEncontradoException;
 import br.com.fiap.calorias.model.Usuario;
+import br.com.fiap.calorias.model.UsuarioRole;
 import br.com.fiap.calorias.repository.UsuarioRepository;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,19 +20,23 @@ public class UsuarioService {
     @Autowired
     private UsuarioRepository usuarioRepository;
 
-    public UsuarioExibicaoDTO salvarUsuario(UsuarioCadastroDTO usuarioDTO){
-
-        String senhaCriptografada = new
-                BCryptPasswordEncoder().encode(usuarioDTO.senha()); // Criptografa a senha
+    public UsuarioExibicaoDTO salvarUsuario(UsuarioCadastroDTO usuarioDTO) {
+        String senhaCriptografada = new BCryptPasswordEncoder().encode(usuarioDTO.senha());
 
         Usuario usuario = new Usuario();
-        BeanUtils.copyProperties(usuarioDTO, usuario);// Copia os dados do DTO para o objeto Usuario
-        usuario.setSenha(senhaCriptografada); // Define a senha criptografada no objeto Usuario
+        BeanUtils.copyProperties(usuarioDTO, usuario);
+        usuario.setSenha(senhaCriptografada);
+
+        // Atribuir o role explicitamente
+        usuario.setRole(usuarioDTO.role());
 
         Usuario usuarioSalvo = usuarioRepository.save(usuario);
 
         return new UsuarioExibicaoDTO(usuarioSalvo);
-
+    }
+    public Usuario buscarPorEmail(String email) {
+        return usuarioRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Usuário não encontrado!"));
     }
 
     public UsuarioExibicaoDTO buscarPorId(Long id){
